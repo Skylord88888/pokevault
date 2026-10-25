@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PokéVault — Collection & Card Show Flip Checker ($ CAD)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            vault: {
+              950: '#070a12',
+              900: '#0d1322',
+              800: '#161f35',
+              700: '#23304f'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background: radial-gradient(circle at top right, #172038 0%, #090d16 45%, #060911 100%);
+      color: #f3f4f6;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .glass-panel {
+      background: rgba(15, 22, 38, 0.88);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card {
+      background: linear-gradient(145deg, rgba(22, 31, 53, 0.9) 0%, rgba(12, 18, 32, 0.95) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(99, 102, 241, 0.35);
+      box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.6);
+    }
+    .gauge-gradient {
+      background: linear-gradient(90deg, #10b981 0%, #10b981 32%, #f59e0b 45%, #f59e0b 58%, #f43f5e 72%, #e11d48 100%);
+    }
+    .marker-transition {
+      transition: left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #263454; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3b4f7d; }
+  </style>
+</head>
+<body class="min-h-screen pb-20 selection:bg-indigo-500 selection:text-white">
+
+  <!-- Toast Notification Banner (No alert() used) -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Top Sticky Header & Portfolio Dashboard -->
+  <header class="sticky top-0 z-30 border-b border-white/10 bg-vault-950/90 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3.5">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        
+        <!-- Brand & Subtitle -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <i class="fa-solid fa-bolt text-white text-lg"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white">PokéVault</h1>
+                <span class="text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                  CAD Flip Checker
+                </span>
+              </div>
+              <p class="text-xs text-gray-400">
+                <span class="text-emerald-400 font-medium">0–35% Keep/Grade</span> • 
+                <span class="text-amber-300 font-medium">36–64% Stay (~50%)</span> • 
+                <span class="text-rose-400 font-medium">65–100% Sell Now</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Mobile Quick Jump Button -->
+          <button onclick="scrollToSection('vaultSection')" class="lg:hidden px-3 py-1.5 rounded-lg bg-vault-800 border border-white/10 text-xs font-semibold text-indigo-300">
+            My Vault (<span id="mobileVaultCount">6</span>)
+          </button>
+        </div>
+
+        <!-- Portfolio KPI Summary Pills -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div class="glass-panel px-3 py-2 rounded-xl">
+            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-medium">Total Vault Value</div>
+            <div id="kpiTotalValue" class="text-base sm:text-lg font-extrabold text-white">$344.76 <span class="text-[11px] font-normal text-gray-400">CAD</span></div>
+          </div>
+          <div class="glass-panel px-3 py-2 rounded-xl">
+            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-medium">Local Cash Floor (80%)</div>
+            <div id="kpiCashFloor" class="text-base sm:text-lg font-extrabold text-emerald-400">$275.81 <span class="text-[11px] font-normal text-gray-400">CAD</span></div>
+          </div>
+          <div class="glass-panel px-3 py-2 rounded-xl">
+            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-medium">🟢 Keep / Grade</div>
+            <div id="kpiKeepCount" class="text-base sm:text-lg font-extrabold text-emerald-300">2 Cards</div>
+          </div>
+          <div class="glass-panel px-3 py-2 rounded-xl">
+            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-medium">🔴 Sell Right Away</div>
+            <div id="kpiSellCount" class="text-base sm:text-lg font-extrabold text-rose-400">3 Cards</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Grid -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN (5 Cols): Live Card Checker, Instant Score Preview & Card Show Deal Calculator -->
+    <section class="lg:col-span-5 space-y-5">
+
+      <!-- 1. LIVE CARD CHECKER & ADD PANEL -->
+      <div class="glass-panel rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-magnifying-glass-chart text-indigo-400"></i>
+              Check or Add Any Card
+            </h2>
+            <p class="text-xs text-gray-400">Test a card at a show or add it to your collection</p>
+          </div>
+          <button onclick="clearCheckerForm()" class="text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded-lg bg-vault-800 border border-white/10 transition">
+            Reset Form
+          </button>
+        </div>
+
+        <!-- Quick-Select Card Show Presets (Popular IRs & Chase Cards) -->
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-[11px] font-semibold uppercase tracking-wider text-indigo-300">
+              ⚡ Quick-Check Popular Card Show Targets (Tap to Load)
+            </label>
+          </div>
+          <div id="presetPills" class="flex gap-1.5 overflow-x-auto pb-1.5">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Live PokemonTCG.io Search Bar -->
+        <div class="mb-4 bg-vault-900/90 p-3 rounded-xl border border-white/10">
+          <label class="text-[11px] font-semibold uppercase tracking-wider text-gray-300 block mb-1.5">
+            🌐 Search Live Pokémon Database (Auto-Fills Set & CAD Price)
+          </label>
+          <div class="flex gap-2">
+            <input id="apiSearchInput" type="text" placeholder="Type Pokémon + number (e.g. Poliwhirl 176, Greninja 214)" 
+              onkeydown="if(event.key==='Enter'){event.preventDefault(); searchPokemonAPI();}"
+              class="w-full bg-vault-950 border border-gray-700/80 rounded-lg px-3 py-2 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500" />
+            <button type="button" onclick="searchPokemonAPI()" id="searchBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shrink-0 transition flex items-center gap-1.5">
+              <i class="fa-solid fa-search"></i>
+              <span>Find</span>
+            </button>
+          </div>
+          <!-- Search Results Dropdown -->
+          <div id="apiResults" class="mt-2 space-y-1.5 max-h-56 overflow-y-auto hidden"></div>
+        </div>
+
+        <!-- LIVE SCORE PREVIEW GAUGE (Updates as you type/slide!) -->
+        <div id="livePreviewBox" class="mb-4 p-3.5 rounded-2xl bg-vault-950/90 border border-indigo-500/30 shadow-inner">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <div>
+              <span class="text-[10px] uppercase tracking-wider text-gray-400 block">Live Action Indicator</span>
+              <span id="previewBadge" class="inline-block mt-0.5 px-2.5 py-0.5 rounded-md text-xs font-bold border bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+                🟢 KEEP / GRADE
+              </span>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-extrabold text-white leading-none">
+                <span id="previewScoreNum">22</span><span class="text-sm text-indigo-300">%</span>
+              </div>
+              <span class="text-[10px] text-gray-400">0% Keep • 50% Stay • 100% Sell</span>
+            </div>
+          </div>
+
+          <!-- Gradient Bar + Moving Pointer -->
+          <div class="relative w-full h-3.5 rounded-full gauge-gradient my-2.5 shadow-inner">
+            <!-- 50% Neutral Tick -->
+            <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white/70 z-10" title="50% Stay / Neutral"></div>
+            <!-- Moving Needle Marker -->
+            <div id="previewMarker" class="absolute -top-1.5 w-4 h-6 rounded bg-white border-2 border-vault-950 shadow-lg marker-transition z-20" style="left: calc(22% - 8px);"></div>
+          </div>
+          <div class="flex justify-between text-[10px] font-medium text-gray-400">
+            <span class="text-emerald-400">0% Strong Keep</span>
+            <span class="text-amber-300">50% Stay / Hold</span>
+            <span class="text-rose-400">100% Sell Right Away</span>
+          </div>
+
+          <!-- Dynamic Plain-English Reasoning -->
+          <p id="previewReason" class="mt-2.5 text-xs text-gray-300 bg-vault-900/90 p-2.5 rounded-lg border border-white/5 leading-relaxed">
+            Clean 50/50 centering + high PSA 10 multiplier makes this a strong keeper or grading play.
+          </p>
+
+          <!-- Instant Card Show Deal Math Bar -->
+          <div class="mt-3 pt-3 border-t border-white/10 grid grid-cols-3 gap-2 text-center">
+            <div class="bg-vault-900/80 p-2 rounded-lg border border-white/5">
+              <div class="text-[10px] text-gray-400">Target Buy (70%)</div>
+              <div id="calcBuy70" class="text-xs sm:text-sm font-bold text-indigo-300">$17.50 CAD</div>
+            </div>
+            <div class="bg-vault-900/80 p-2 rounded-lg border border-white/5">
+              <div class="text-[10px] text-gray-400">Local Flip (90%)</div>
+              <div id="calcFlip90" class="text-xs sm:text-sm font-bold text-emerald-400">$22.50 CAD</div>
+            </div>
+            <div class="bg-vault-900/80 p-2 rounded-lg border border-white/5">
+              <div class="text-[10px] text-gray-400">Est. Flip Profit</div>
+              <div id="calcProfit" class="text-xs sm:text-sm font-bold text-amber-300">+$5.00 CAD</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BUY CHECK: is the seller's asking price a good deal? -->
+        <div id="buyCheck" class="mb-4 p-3.5 rounded-2xl bg-vault-950/90 border border-emerald-500/30">
+          <div class="flex items-end justify-between gap-3">
+            <div class="flex-1">
+              <label class="text-[10px] uppercase tracking-wider text-gray-400 block mb-1">🛒 Seller's Asking Price ($ CAD)</label>
+              <input id="inAsk" type="number" step="0.01" min="0" placeholder="What are they asking?" oninput="updateLiveChecker()"
+                class="w-full bg-vault-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-semibold focus:outline-none focus:border-emerald-500" />
+            </div>
+            <span id="buyVerdict" class="px-3 py-2 rounded-lg text-xs font-extrabold border bg-vault-800 text-gray-300 border-white/10">ENTER PRICE</span>
+          </div>
+          <div class="mt-2.5 grid grid-cols-2 gap-2 text-center">
+            <div class="bg-vault-900/80 p-2 rounded-lg border border-white/5">
+              <div class="text-[10px] text-gray-400">Most You Should Pay</div>
+              <div id="buyMax" class="text-xs sm:text-sm font-bold text-emerald-400">—</div>
+            </div>
+            <div class="bg-vault-900/80 p-2 rounded-lg border border-white/5">
+              <div class="text-[10px] text-gray-400">Profit If You Flip It</div>
+              <div id="buyProfit" class="text-xs sm:text-sm font-bold text-amber-300">—</div>
+            </div>
+          </div>
+          <p id="buyNote" class="mt-2 text-xs text-gray-300 leading-relaxed"></p>
+        </div>
+
+        <!-- Card Checker / Add Form Inputs -->
+        <form id="cardCheckerForm" onsubmit="handleSaveCard(event)" class="space-y-3 text-xs sm:text-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+            <div class="sm:col-span-7">
+              <label class="text-xs text-gray-300 font-medium">Card Name & Number *</label>
+              <input id="inName" required type="text" value="Poliwhirl #176/165" oninput="updateLiveChecker()"
+                placeholder="e.g. Poliwhirl #176/165"
+                class="w-full mt-1 bg-vault-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div class="sm:col-span-5">
+              <label class="text-xs text-gray-300 font-medium">Set Name *</label>
+              <input id="inSet" required type="text" value="Pokémon 151" oninput="updateLiveChecker()"
+                placeholder="e.g. Pokémon 151"
+                class="w-full mt-1 bg-vault-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <div>
+              <label class="text-xs text-gray-300 font-medium">Market Price ($ CAD) *</label>
+              <input id="inPrice" required type="number" step="0.01" min="0.5" value="25.00" oninput="updateLiveChecker()"
+                class="w-full mt-1 bg-vault-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-semibold focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label class="text-xs text-gray-300 font-medium">30d Fluctuation (%)</label>
+              <input id="inChange" required type="number" step="0.01" value="2.40" oninput="updateLiveChecker()"
+                class="w-full mt-1 bg-vault-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div class="col-span-2 sm:col-span-1">
+              <label class="text-xs text-gray-300 font-medium">Est. PSA 10 ($ CAD)</label>
+              <input id="inPsa10" required type="number" step="1" min="5" value="185" oninput="updateLiveChecker()"
+                class="w-full mt-1 bg-vault-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <label class="text-xs text-gray-300 font-medium">Condition & Centering</label>
+              <select id="inCondition" onchange="updateLiveChecker()"
+                class="w-full mt-1 bg-vault-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                <option value="MINT_10">NM — Clean 50/50 (PSA 10 Shot)</option>
+                <option value="NM_STAY">NM — Standard / Foreign Niche</option>
+                <option value="NM_OC">NM — Off-Center / Whitening (PSA 9 Cap)</option>
+                <option value="LP">Lightly Played (LP)</option>
+                <option value="MP">Moderately Played (MP)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-gray-300 font-medium">Card Category / Demand</label>
+              <select id="inRarity" onchange="updateLiveChecker()"
+                class="w-full mt-1 bg-vault-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                <option value="IR_SIR">Illustration Rare (IR / SIR / Alt Art)</option>
+                <option value="TG_CHR">Trainer Gallery / Character Secret</option>
+                <option value="FULL_ART">Full Art Trainer / Tag Team</option>
+                <option value="PROMO_GOLD">Promo / Gold Item / Regular EX</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Personal Note / Flip Strategy</label>
+            <input id="inNotes" type="text" placeholder="e.g. Bought at Ottawa show in $60 bundle; clean back corners"
+              class="w-full mt-1 bg-vault-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+
+          <input id="inImg" type="hidden" value="https://images.pokemontcg.io/sv3pt5/176.png" />
+
+          <!-- Action Buttons: Add to Vault OR Add to Sunday Show Bundle -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-emerald-950/60 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-plus-circle"></i>
+              <span>Add to My Vault</span>
+            </button>
+            <button type="button" onclick="addCurrentToShowBundle()" class="w-full bg-indigo-600/90 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-xl border border-indigo-400/30 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+              <span>Add to $60 Show Bundle</span>
+            </button>
+          </div>
+          <button type="button" onclick="addToWantList()" class="w-full bg-vault-800 hover:bg-vault-700 text-sky-300 font-semibold py-2.5 px-4 rounded-xl border border-sky-400/30 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-bullseye"></i>
+            <span>Add to Want-to-Buy List</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- 2. SUNDAY CARD SHOW BUNDLE NEGOTIATOR ($60 IR FLIP PLANNER) -->
+      <div class="glass-panel rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-sack-dollar text-amber-400"></i>
+              Sunday Card Show Bundle Negotiator
+            </h3>
+            <p class="text-xs text-gray-400">Queue 2–4 cards at a booth to calculate your 75% cash offer</p>
+          </div>
+          <button onclick="clearShowBundle()" class="text-xs text-gray-400 hover:text-rose-400 underline">Clear</button>
+        </div>
+
+        <div id="bundleList" class="space-y-1.5 my-3 max-h-44 overflow-y-auto">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="bg-vault-950/90 p-3 rounded-xl border border-white/10 space-y-2 text-xs">
+          <div class="flex justify-between text-gray-300">
+            <span>Vendor Sticker Total (100%):</span>
+            <span id="bundleStickerTotal" class="font-bold text-white">$0.00 CAD</span>
+          </div>
+          <div class="flex justify-between text-emerald-400 font-semibold text-sm">
+            <span>🎯 Your Cash Offer to Vendor (75%):</span>
+            <span id="bundleCashOffer">$0.00 CAD</span>
+          </div>
+          <div class="flex justify-between text-amber-300">
+            <span>Est. Local Flip Profit (Selling at 90%):</span>
+            <span id="bundleFlipProfit" class="font-bold">+$0.00 CAD</span>
+          </div>
+          <div class="pt-2 border-t border-white/10">
+            <label class="text-[10px] uppercase tracking-wider text-gray-400 block mb-1">🛒 Vendor's Real Price for the Bundle (optional, $ CAD)</label>
+            <div class="flex items-center gap-2">
+              <input id="bundleAsk" type="number" step="0.01" min="0" placeholder="Blank = use my 75% offer" oninput="renderShowBundle()"
+                class="flex-1 bg-vault-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-semibold focus:outline-none focus:border-emerald-500" />
+              <span id="bundleVerdict" class="px-3 py-2 rounded-lg text-xs font-extrabold border bg-vault-800 text-gray-300 border-white/10">ADD CARDS</span>
+            </div>
+            <div class="flex justify-between text-gray-300 mt-2">
+              <span>Most to pay for the whole bundle:</span>
+              <span id="bundleMax" class="font-bold text-emerald-400">—</span>
+            </div>
+            <p id="bundleNote" class="mt-1.5 text-[11px] text-gray-300 leading-relaxed"></p>
+          </div>
+          <div id="bundleScript" class="text-[11px] text-indigo-200 bg-indigo-950/40 border border-indigo-500/20 rounded-lg p-2 italic">
+            Add cards above using "Add to $60 Show Bundle" to generate your exact vendor negotiation script!
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. WANT-TO-BUY LIST -->
+      <div class="glass-panel rounded-2xl p-4 sm:p-5">
+        <div class="mb-2">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-bullseye text-sky-400"></i>
+            Want-to-Buy List (<span id="wantCount">0</span>)
+          </h3>
+          <p class="text-xs text-gray-400">Cards you want, with the price to buy at. Prices refresh with the vault.</p>
+        </div>
+        <div id="wantList" class="space-y-2 max-h-96 overflow-y-auto"></div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN (7 Cols): Pre-Loaded Collection Vault & Action Filters -->
+    <section id="vaultSection" class="lg:col-span-7 space-y-4">
+
+      <!-- Vault Filter & Search Controls -->
+      <div class="glass-panel p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <!-- Signal Filter Tabs -->
+        <div class="flex flex-wrap gap-1.5 text-xs">
+          <button onclick="setVaultFilter('ALL')" id="tab-ALL" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold transition">
+            All (<span id="count-ALL">6</span>)
+          </button>
+          <button onclick="setVaultFilter('KEEP')" id="tab-KEEP" class="px-3 py-1.5 rounded-lg bg-vault-800 text-emerald-400 hover:bg-vault-700 font-medium transition">
+            🟢 Keep 0–35% (<span id="count-KEEP">2</span>)
+          </button>
+          <button onclick="setVaultFilter('STAY')" id="tab-STAY" class="px-3 py-1.5 rounded-lg bg-vault-800 text-amber-300 hover:bg-vault-700 font-medium transition">
+            🟡 Stay 36–64% (<span id="count-STAY">1</span>)
+          </button>
+          <button onclick="setVaultFilter('SELL')" id="tab-SELL" class="px-3 py-1.5 rounded-lg bg-vault-800 text-rose-400 hover:bg-vault-700 font-medium transition">
+            🔴 Sell 65–100% (<span id="count-SELL">3</span>)
+          </button>
+        </div>
+
+        <!-- Search & Sort -->
+        <div class="flex items-center gap-2 text-xs">
+          <input id="vaultSearch" type="text" oninput="renderVault()" placeholder="Filter vault..."
+            class="bg-vault-900 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white placeholder-gray-500 w-32 sm:w-40 focus:outline-none focus:border-indigo-500" />
+          <select id="vaultSort" onchange="renderVault()" class="bg-vault-900 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none">
+            <option value="SCORE_DESC">Sell Score (High → Low)</option>
+            <option value="SCORE_ASC">Keep Score (Low → High)</option>
+            <option value="PRICE_DESC">Price ($ High → Low)</option>
+            <option value="CHANGE_DESC">30d Move (% High → Low)</option>
+          </select>
+          <button onclick="refreshPrices()" title="Refresh live prices"
+            class="px-2.5 py-1.5 rounded-lg bg-vault-800 hover:bg-vault-700 text-gray-300 border border-white/10 transition">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </button>
+          <button onclick="resetVaultToDefaults()" title="Restore your original 6 cards"
+            class="px-2.5 py-1.5 rounded-lg bg-vault-800 hover:bg-vault-700 text-gray-300 border border-white/10 transition">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sunday Plan Banner (Mimikyu + Giant Hearth Deal Summary) -->
+      <div class="glass-panel rounded-2xl p-3.5 border-l-4 border-l-emerald-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="text-xs">
+          <div class="font-bold text-white flex items-center gap-1.5">
+            <span>💡 Active Game Plan: Mimikyu #245 + Giant Hearth #263 ($114.80 CAD Value)</span>
+          </div>
+          <p class="text-gray-300 mt-0.5">
+            Both score in the <b class="text-rose-400">88%–94% SELL NOW</b> zone. Sell both to your friend for <b class="text-emerald-400">$90 CAD cash</b> → Pocket <b class="text-white">$30 CAD profit</b> + take <b class="text-indigo-300">$60 CAD</b> to buy 3 clean IRs at 75%!
+          </p>
+        </div>
+        <button onclick="filterOnlySellNow()" class="shrink-0 px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 text-xs font-semibold transition">
+          View Sell List
+        </button>
+      </div>
+
+      <!-- Cards Vault Grid -->
+      <div id="vaultGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Populated by JS -->
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. CONSTANTS & POPULAR CARD SHOW IR PRESETS
+    // =========================================================================
+    let USD_TO_CAD = 1.40; // fallback if the rate lookup fails
+    const STORAGE_KEY = 'pokevault_cad_collection_v2';
+    let activeFilter = 'ALL';
+    let showBundle = [
+      { id: 'b1', name: 'Poliwhirl #176/165 (151 IR)', price: 25.00 },
+      { id: 'b2', name: 'Cleffa #202/197 (Obsidian Flames IR)', price: 24.00 },
+      { id: 'b3', name: 'Dragonair #181/165 (151 IR)', price: 29.00 }
+    ];
+
+    // Quick-check presets so the user can test popular cards with 1 tap
+    const popularPresets = [
+      {
+        label: '🔥 Greninja ex SIR',
+        name: 'Greninja ex #214/167',
+        set: 'Twilight Masquerade',
+        price: 385.00,
+        change: -8.40,
+        psa10: 890,
+        condition: 'MINT_10',
+        rarity: 'IR_SIR',
+        img: 'https://images.pokemontcg.io/sv6/214.png',
+        notes: 'Dropped from early release FOMO & grading returns. Only buy raw if 50/50 centered & at 75% cash.'
+      },
+      {
+        label: '🌀 Poliwhirl 176 (151)',
+        name: 'Poliwhirl #176/165',
+        set: 'Pokémon 151',
+        price: 25.00,
+        change: 2.40,
+        psa10: 185,
+        condition: 'MINT_10',
+        rarity: 'IR_SIR',
+        img: 'https://images.pokemontcg.io/sv3pt5/176.png',
+        notes: 'Top-tier $20-$25 CAD liquid 151 Illustration Rare. Great card show bundle target.'
+      },
+      {
+        label: '🐉 Dragonair 181 (151)',
+        name: 'Dragonair #181/165',
+        set: 'Pokémon 151',
+        price: 29.50,
+        change: 3.10,
+        psa10: 210,
+        condition: 'MINT_10',
+        rarity: 'IR_SIR',
+        img: 'https://images.pokemontcg.io/sv3pt5/181.png',
+        notes: 'High-liquidity Gen 1 Illustration Rare. Moves fast locally on Marketplace.'
+      },
+      {
+        label: '🦎 Charmander 168 (151)',
+        name: 'Charmander #168/165',
+        set: 'Pokémon 151',
+        price: 58.00,
+        change: 1.80,
+        psa10: 360,
+        condition: 'MINT_10',
+        rarity: 'IR_SIR',
+        img: 'https://images.pokemontcg.io/sv3pt5/168.png',
+        notes: 'Tough PSA 10 gem rate on 151 IRs; verify back corners have zero whitening.'
+      },
+      {
+        label: '🌟 Cleffa 202 (OBF)',
+        name: 'Cleffa #202/197',
+        set: 'Obsidian Flames',
+        price: 24.00,
+        change: 4.20,
+        psa10: 220,
+        condition: 'MINT_10',
+        rarity: 'IR_SIR',
+        img: 'https://images.pokemontcg.io/sv3/202.png',
+        notes: 'Iconic starry sky artwork; huge PSA 10 multiplier if silver borders are 50/50.'
+      },
+      {
+        label: '⚡ Raichu 211 (PAL)',
+        name: 'Raichu #211/193',
+        set: 'Paldea Evolved',
+        price: 42.00,
+        change: 1.50,
+        psa10: 310,
+        condition: 'MINT_10',
+        rarity: 'IR_SIR',
+        img: 'https://images.pokemontcg.io/sv2/211.png',
+        notes: 'Sleeping Raichu IR — popular fan favorite with strong PSA 10 premium.'
+      },
+      {
+        label: '👻 Gastly 177 (TEF)',
+        name: 'Gastly #177/162',
+        set: 'Temporal Forces',
+        price: 38.00,
+        change: -1.90,
+        psa10: 245,
+        condition: 'MINT_10',
+        rarity: 'IR_SIR',
+        img: 'https://images.pokemontcg.io/sv5/177.png',
+        notes: 'Gengar evolution line cameo in artwork keeps collector demand high.'
+      },
+      {
+        label: '🐟 Magikarp 203 (PAL)',
+        name: 'Magikarp #203/193',
+        set: 'Paldea Evolved',
+        price: 215.00,
+        change: 5.40,
+        psa10: 1250,
+        condition: 'MINT_10',
+        rarity: 'IR_SIR',
+        img: 'https://images.pokemontcg.io/sv2/203.png',
+        notes: 'Shinji Kanda artwork; notorious low PSA 10 gem rate makes clean copies skyrocket.'
+      }
+    ];
+
+    // =========================================================================
+    // 2. PRE-LOADED COLLECTION VAULT (USER'S 6 EXACT CARDS)
+    // =========================================================================
+    const initialVaultCards = [
+      {
+        id: 'vault_mimikyu_245',
+        name: 'Mimikyu (Secret) #245/236',
+        set: 'Cosmic Eclipse',
+        rarity: 'TG_CHR',
+        price: 100.37,
+        change: -0.94,
+        condition: 'NM_OC',
+        psa10: 1135,
+        calibratedScore: 88,
+        notes: 'Right-heavy front yellow border (~43/57) caps grade at PSA 9. Bundle with Giant Hearth for $90 CAD cash to your friend!',
+        img: 'https://images.pokemontcg.io/sm12/245.png'
+      },
+      {
+        id: 'vault_pikachu_tg05',
+        name: 'Pikachu #TG05/TG30',
+        set: 'Lost Origin Trainer Gallery',
+        rarity: 'TG_CHR',
+        price: 54.27,
+        change: -5.09,
+        condition: 'MINT_10',
+        psa10: 1100,
+        calibratedScore: 18,
+        notes: 'Front centering is within 55/45! Only 21% PSA 10 gem rate (~$1,100 CAD in a 10). Keep & grade if back corners are speck-free.',
+        img: 'https://images.pokemontcg.io/swsh11tg/TG05.png'
+      },
+      {
+        id: 'vault_slowpoke_204',
+        name: 'Slowpoke #204/198',
+        set: 'Scarlet & Violet Base Set',
+        rarity: 'IR_SIR',
+        price: 53.63,
+        change: -0.74,
+        condition: 'MINT_10',
+        psa10: 1125,
+        calibratedScore: 24,
+        notes: 'Massive 20x PSA 10 multiplier due to tough S&V Base factory edges. Keep to grade if back is spotless; sell for $45 CAD if whitened.',
+        img: 'https://images.pokemontcg.io/sv1/204.png'
+      },
+      {
+        id: 'vault_barbara_231',
+        name: 'Barbara et Néphie #231/236 (FR)',
+        set: 'Éclipse Cosmique (French SL12)',
+        rarity: 'FULL_ART',
+        price: 105.00,
+        change: 1.20,
+        condition: 'NM_STAY',
+        psa10: 450,
+        calibratedScore: 48,
+        notes: 'Scarce French print run. Stay/Hold at ~50% equilibrium — never dump at English booths; list on eBay.ca or Québec FB groups.',
+        img: 'https://images.pokemontcg.io/sm12/231.png'
+      },
+      {
+        id: 'vault_mewtwo_xy183',
+        name: 'Mewtwo EX #XY183',
+        set: 'XY Promos',
+        rarity: 'PROMO_GOLD',
+        price: 17.06,
+        change: 2.04,
+        condition: 'MP',
+        psa10: 180,
+        calibratedScore: 76,
+        notes: 'Moderately Played promo caps long-term growth. Sell locally for $12–$14 CAD or trade up at a card show.',
+        img: 'https://images.pokemontcg.io/xyp/XY183.png'
+      },
+      {
+        id: 'vault_hearth_263',
+        name: 'Giant Hearth (Secret) #263/236',
+        set: 'Cosmic Eclipse',
+        rarity: 'PROMO_GOLD',
+        price: 14.43,
+        change: 0.69,
+        condition: 'NM_OC',
+        psa10: 38,
+        calibratedScore: 94,
+        notes: 'Gold Stadium Secret Rare — PSA 10 is only ~$38 CAD (loses money grading). Include in the $90 CAD Mimikyu deal!',
+        img: 'https://images.pokemontcg.io/sm12/263.png'
+      }
+    ];
+
+    // =========================================================================
+    // 3. SCORING ENGINE (0% = STRONG KEEP/GRADE, 50% = STAY, 100% = SELL NOW)
+    // =========================================================================
+    function computeActionScore(card) {
+      // If card has a pre-calibrated baseline and user hasn't toggled condition, honor exact score
+
+      const price = Number(card.price) || 20;
+      const change = Number(card.change) || 0;
+      const psa10 = Number(card.psa10) || price * 4;
+      const condition = card.condition || 'MINT_10';
+      const rarity = card.rarity || 'IR_SIR';
+
+      let score = 50; // Start at 50% Neutral ("Stay") baseline
+
+      // 1. Condition & Centering Factor
+      if (condition === 'MINT_10') score -= 18;      // Clean 50/50 centering pushes toward Keep/Grade
+      else if (condition === 'NM_STAY') score += 0;  // Standard NM neutral hold
+      else if (condition === 'NM_OC') score += 24;   // Off-center / PSA 9 cap -> sell raw
+      else if (condition === 'LP') score += 26;
+      else if (condition === 'MP') score += 32;      // Played condition -> hard ceiling
+
+      // 2. Rarity & Collector Velocity Factor
+      if (rarity === 'IR_SIR') score -= 6;
+      else if (rarity === 'TG_CHR') score -= 5;
+      else if (rarity === 'FULL_ART') score -= 2;
+      else if (rarity === 'PROMO_GOLD') score += 20; // Gold items & promos stagnate
+
+      // 3. PSA 10 Multiplier Upside
+      const multiplier = price > 0 ? (psa10 / price) : 1;
+      if (condition === 'MINT_10') {
+        if (multiplier >= 15) score -= 10;           // Huge 15x-20x PSA 10 lottery ticket
+        else if (multiplier >= 6) score -= 6;
+        else if (multiplier < 2.5) score += 15;      // Not worth grading even if mint
+      } else if (condition === 'NM_OC') {
+        if (price >= 70) score += 16;                // High-dollar raw card that cannot 10 -> cash out!
+        if (multiplier < 3) score += 8;
+      }
+
+      // 4. 30-Day Price Fluctuation ("Stock" Momentum)
+      if (change >= 12) score += 9;                  // Spiking fast -> sell into FOMO
+      else if (change >= 5) score += 4;
+      else if (change <= -5) score -= 6; // dipping -> hold, don't sell low
+
+      return Math.max(6, Math.min(98, Math.round(score)));
+    }
+
+    function getSignalDetails(score, card) {
+      const mult = card && card.price > 0 ? (card.psa10 / card.price).toFixed(1) : '4.0';
+      if (score <= 35) {
+        return {
+          zone: 'KEEP',
+          badgeText: '🟢 KEEP / GRADE',
+          badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+          barColor: 'bg-emerald-500',
+          reason: `Strong Hold (${score}%): Clean 50/50 centering with a ${mult}x PSA 10 multiplier ($${card.psa10} CAD). Keep in your collection or submit for grading — only buy raw at 70%–75% cash.`
+        };
+      } else if (score <= 64) {
+        return {
+          zone: 'STAY',
+          badgeText: '🟡 STAY / HOLD (~50% Zone)',
+          badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+          barColor: 'bg-amber-400',
+          reason: `Neutral Equilibrium (${score}%): Steady collector value. If you own it, hold for full market value; if you don't own it, only buy if offered a 70% bundle discount.`
+        };
+      } else {
+        return {
+          zone: 'SELL',
+          badgeText: '🔴 SELL RIGHT AWAY',
+          badgeClass: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+          barColor: 'bg-rose-500',
+          reason: `Cash Out Signal (${score}%): Upside is capped (off-center PSA 9 ceiling, played condition, or low-growth gold/promo). Sell for 80%–90% local cash and rotate into clean Tier 1 IRs!`
+        };
+      }
+    }
+
+    // =========================================================================
+    // 4. LOCAL STORAGE & VAULT STATE MANAGEMENT
+    // =========================================================================
+    function getVaultCards() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(initialVaultCards));
+          return [...initialVaultCards];
+        }
+        return JSON.parse(raw);
+      } catch (e) {
+        return [...initialVaultCards];
+      }
+    }
+
+    function saveVaultCards(cards) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+      } catch (e) {}
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const colorClass = type === 'success'
+        ? 'border-emerald-500/40 bg-vault-900/95 text-emerald-300'
+        : 'border-indigo-500/40 bg-vault-900/95 text-indigo-200';
+      toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl border ${colorClass} shadow-2xl text-xs font-semibold flex items-center gap-2 transition-all duration-300`;
+      toast.innerHTML = `<i class="fa-solid fa-circle-check"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 2800);
+    }
+
+    // =========================================================================
+    // 5. LIVE CHECKER FORM & PRESET INTERACTIVITY
+    // =========================================================================
+    function renderPresets() {
+      const container = document.getElementById('presetPills');
+      container.innerHTML = popularPresets.map((p, idx) => `
+        <button type="button" onclick="loadPreset(${idx})"
+          class="shrink-0 px-2.5 py-1.5 rounded-lg bg-vault-800 hover:bg-indigo-600/30 border border-white/10 hover:border-indigo-400/40 text-xs text-gray-200 font-medium transition">
+          ${p.label} <span class="text-emerald-400 font-semibold">$${p.price}</span>
+        </button>
+      `).join('');
+    }
+
+    function loadPreset(index) {
+      const p = popularPresets[index];
+      if (!p) return;
+      document.getElementById('inName').value = p.name;
+      document.getElementById('inSet').value = p.set;
+      document.getElementById('inPrice').value = p.price.toFixed(2);
+      document.getElementById('inChange').value = p.change.toFixed(2);
+      document.getElementById('inPsa10').value = p.psa10;
+      document.getElementById('inCondition').value = p.condition;
+      document.getElementById('inRarity').value = p.rarity;
+      document.getElementById('inNotes').value = p.notes;
+      document.getElementById('inImg').value = p.img;
+      updateLiveChecker();
+      showToast(`Loaded ${p.name} into Live Checker`, 'info');
+    }
+
+    function getCheckerDraftCard() {
+      const price = parseFloat(document.getElementById('inPrice').value) || 0;
+      return {
+        name: document.getElementById('inName').value.trim() || 'Untitled Card',
+        set: document.getElementById('inSet').value.trim() || 'Custom Set',
+        price: price,
+        change: parseFloat(document.getElementById('inChange').value) || 0,
+        psa10: parseFloat(document.getElementById('inPsa10').value) || Math.round(price * 4),
+        condition: document.getElementById('inCondition').value,
+        rarity: document.getElementById('inRarity').value,
+        notes: document.getElementById('inNotes').value.trim(),
+        img: document.getElementById('inImg').value || 'https://images.pokemontcg.io/sv3pt5/176.png'
+      };
+    }
+
+    function updateLiveChecker() {
+      const draft = getCheckerDraftCard();
+      const score = computeActionScore(draft);
+      const details = getSignalDetails(score, draft);
+
+      // Update Live Score Header & Needle
+      document.getElementById('previewScoreNum').textContent = score;
+      const badge = document.getElementById('previewBadge');
+      badge.textContent = details.badgeText;
+      badge.className = `inline-block mt-0.5 px-2.5 py-0.5 rounded-md text-xs font-bold border ${details.badgeClass}`;
+
+      const marker = document.getElementById('previewMarker');
+      marker.style.left = `calc(${score}% - 8px)`;
+
+      document.getElementById('previewReason').textContent = details.reason;
+
+      // Update Instant Card Show Deal Math (70% Buy, 90% Flip, Net Profit)
+      const buy70 = draft.price * 0.70;
+      const flip90 = draft.price * 0.90;
+      const profit = flip90 - buy70;
+
+      document.getElementById('calcBuy70').textContent = `$${buy70.toFixed(2)} CAD`;
+      document.getElementById('calcFlip90').textContent = `$${flip90.toFixed(2)} CAD`;
+      document.getElementById('calcProfit').textContent = `+$${profit.toFixed(2)} CAD`;
+      updateBuyCheck();
+    }
+
+    function updateBuyCheck() {
+      const draft = getCheckerDraftCard();
+      const ask = parseFloat(document.getElementById('inAsk').value) || 0;
+      const badge = document.getElementById('buyVerdict');
+      const maxEl = document.getElementById('buyMax');
+      const profitEl = document.getElementById('buyProfit');
+      const noteEl = document.getElementById('buyNote');
+
+      // What you'd realistically get flipping it locally (market price x condition x 90%)
+      const condMult = { MINT_10: 1.0, NM_STAY: 0.95, NM_OC: 0.85, LP: 0.75, MP: 0.65 }[draft.condition] || 0.9;
+      const resale = draft.price * condMult * 0.90;
+      const weak = draft.rarity === 'PROMO_GOLD' || draft.condition === 'LP' || draft.condition === 'MP';
+      const needMargin = weak ? 0.35 : 0.25;          // hard-to-resell cards need a bigger discount
+      const maxPay = resale / (1 + needMargin);
+      maxEl.textContent = `$${maxPay.toFixed(2)} CAD`;
+
+      if (!ask) {
+        badge.textContent = 'ENTER PRICE';
+        badge.className = 'px-3 py-2 rounded-lg text-xs font-extrabold border bg-vault-800 text-gray-300 border-white/10';
+        profitEl.textContent = '—';
+        noteEl.textContent = 'Type what the seller wants and I will tell you if it is worth buying.';
+        return;
+      }
+
+      const profit = resale - ask;
+      const margin = profit / ask;
+      let verdict = margin >= needMargin ? 'BUY' : (margin >= 0.10 ? 'HAGGLE' : 'PASS');
+      const notes = [];
+
+      if (draft.change <= -5) {
+        notes.push('Price is falling right now, so offer lower or wait.');
+        if (verdict === 'BUY') verdict = 'HAGGLE';
+      }
+      if (draft.change >= 12) {
+        notes.push('Price just spiked, so you may be buying the top.');
+        if (verdict === 'BUY') verdict = 'HAGGLE';
+      }
+      if (weak) notes.push('Hard to resell, so you need a bigger discount.');
+      const mult = draft.price > 0 ? draft.psa10 / draft.price : 0;
+      if (draft.condition === 'MINT_10' && mult >= 6 && ask <= draft.price * 0.8) {
+        notes.push(`Grading upside: a PSA 10 is about ${mult.toFixed(1)}x the raw price (check real sales).`);
+      }
+
+      const styles = {
+        BUY:    ['🟢 GOOD BUY', 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'],
+        HAGGLE: ['🟡 HAGGLE',   'bg-amber-500/15 text-amber-300 border-amber-500/30'],
+        PASS:   ['🔴 PASS',     'bg-rose-500/15 text-rose-300 border-rose-500/30']
+      };
+      badge.textContent = styles[verdict][0];
+      badge.className = `px-3 py-2 rounded-lg text-xs font-extrabold border ${styles[verdict][1]}`;
+      profitEl.textContent = `${profit >= 0 ? '+' : '-'}$${Math.abs(profit).toFixed(2)} CAD`;
+      const lead = verdict === 'BUY' ? 'Good price.' : verdict === 'HAGGLE' ? (ask <= maxPay ? 'Price is fair, but read below.' : `Offer $${maxPay.toFixed(2)} or less.`) : `Too expensive. Only worth it at $${maxPay.toFixed(2)} or less.`;
+      noteEl.textContent = `${lead} ${notes.join(' ')}`;
+    }
+
+    function clearCheckerForm() {
+      document.getElementById('inName').value = '';
+      document.getElementById('inSet').value = '';
+      document.getElementById('inPrice').value = '25.00';
+      document.getElementById('inChange').value = '0.00';
+      document.getElementById('inPsa10').value = '160';
+      document.getElementById('inCondition').value = 'MINT_10';
+      document.getElementById('inRarity').value = 'IR_SIR';
+      document.getElementById('inNotes').value = '';
+      document.getElementById('inImg').value = 'https://images.pokemontcg.io/sv3pt5/176.png';
+      updateLiveChecker();
+    }
+
+    function handleSaveCard(e) {
+      e.preventDefault();
+      const draft = getCheckerDraftCard();
+      const newCard = {
+        ...draft,
+        id: 'vault_' + Date.now()
+      };
+      const cards = getVaultCards();
+      cards.unshift(newCard);
+      saveVaultCards(cards);
+      renderVault();
+      showToast(`Added "${newCard.name}" to your Vault!`);
+    }
+
+    // Load any existing Vault card back into the left Checker to inspect/tweak
+    function loadVaultCardIntoChecker(id) {
+      const card = getVaultCards().find(c => c.id === id);
+      if (!card) return;
+      document.getElementById('inName').value = card.name;
+      document.getElementById('inSet').value = card.set;
+      document.getElementById('inPrice').value = Number(card.price).toFixed(2);
+      document.getElementById('inChange').value = Number(card.change).toFixed(2);
+      document.getElementById('inPsa10').value = card.psa10 || Math.round(card.price * 4);
+      document.getElementById('inCondition').value = card.condition;
+      document.getElementById('inRarity').value = card.rarity;
+      document.getElementById('inNotes').value = card.notes || '';
+      document.getElementById('inImg').value = card.img || '';
+      updateLiveChecker();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showToast(`Loaded "${card.name}" into Checker`, 'info');
+    }
+
+    // =========================================================================
+    // 6. SUNDAY CARD SHOW BUNDLE CALCULATOR
+    // =========================================================================
+    function addCurrentToShowBundle() {
+      const draft = getCheckerDraftCard();
+      showBundle.push({
+        id: 'b_' + Date.now(),
+        name: draft.name,
+        price: draft.price,
+        condition: draft.condition,
+        rarity: draft.rarity,
+        change: draft.change
+      });
+      renderShowBundle();
+      showToast(`Added "${draft.name}" to Sunday Show Bundle!`);
+    }
+
+    function removeShowBundleItem(id) {
+      showBundle = showBundle.filter(item => item.id !== id);
+      renderShowBundle();
+    }
+
+    function clearShowBundle() {
+      showBundle = [];
+      renderShowBundle();
+    }
+
+    function renderShowBundle() {
+      const listEl = document.getElementById('bundleList');
+      if (showBundle.length === 0) {
+        listEl.innerHTML = `<div class="text-xs text-gray-500 italic py-2 text-center">No cards in bundle yet. Pick a preset above and click "Add to $60 Show Bundle".</div>`;
+      } else {
+        listEl.innerHTML = showBundle.map(item => `
+          <div class="flex items-center justify-between bg-vault-900/90 px-3 py-1.5 rounded-lg border border-white/5 text-xs">
+            <span class="text-gray-200 font-medium truncate pr-2">${item.name}</span>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-white font-semibold">$${item.price.toFixed(2)}</span>
+              <button onclick="removeShowBundleItem('${item.id}')" class="text-gray-500 hover:text-rose-400">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const totalSticker = showBundle.reduce((acc, item) => acc + item.price, 0);
+      const cashOffer75 = Math.round(totalSticker * 0.75);
+      const condMult = { MINT_10: 1.0, NM_STAY: 0.95, NM_OC: 0.85, LP: 0.75, MP: 0.65 };
+      const resaleTotal = showBundle.reduce((acc, i) => acc + i.price * (condMult[i.condition] || 1.0) * 0.90, 0);
+      const weakCount = showBundle.filter(i => i.rarity === 'PROMO_GOLD' || i.condition === 'LP' || i.condition === 'MP').length;
+      const needMargin = weakCount > showBundle.length / 2 ? 0.35 : 0.25;
+      const maxPayTotal = resaleTotal / (1 + needMargin);
+      const askInput = parseFloat(document.getElementById('bundleAsk').value) || 0;
+      const payPrice = askInput || cashOffer75;
+      const flipAt90 = resaleTotal;
+      const estProfit = Math.max(0, flipAt90 - payPrice);
+
+      // Verdict: is the bundle worth buying at the price you'd pay?
+      const vEl = document.getElementById('bundleVerdict');
+      const noteEl = document.getElementById('bundleNote');
+      document.getElementById('bundleMax').textContent = showBundle.length ? `$${maxPayTotal.toFixed(2)} CAD` : '—';
+      if (showBundle.length === 0) {
+        vEl.textContent = 'ADD CARDS';
+        vEl.className = 'px-3 py-2 rounded-lg text-xs font-extrabold border bg-vault-800 text-gray-300 border-white/10';
+        noteEl.textContent = '';
+      } else {
+        const margin = (resaleTotal - payPrice) / payPrice;
+        const verdict = margin >= needMargin ? 'BUY' : (margin >= 0.10 ? 'HAGGLE' : 'PASS');
+        const styles = {
+          BUY:    ['🟢 BUY IT', 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'],
+          HAGGLE: ['🟡 HAGGLE', 'bg-amber-500/15 text-amber-300 border-amber-500/30'],
+          PASS:   ['🔴 PASS', 'bg-rose-500/15 text-rose-300 border-rose-500/30']
+        };
+        vEl.textContent = styles[verdict][0];
+        vEl.className = `px-3 py-2 rounded-lg text-xs font-extrabold border ${styles[verdict][1]}`;
+        const label = askInput ? `At $${payPrice.toFixed(2)}` : `At your $${payPrice.toFixed(2)} offer`;
+        noteEl.textContent = verdict === 'BUY'
+          ? `${label}, you'd make about $${(resaleTotal - payPrice).toFixed(2)} flipping them.`
+          : `${label}, the profit is thin. Get it to $${maxPayTotal.toFixed(2)} or less.`;
+      }
+
+      document.getElementById('bundleStickerTotal').textContent = `$${totalSticker.toFixed(2)} CAD`;
+      document.getElementById('bundleCashOffer').textContent = `$${cashOffer75.toFixed(2)} CAD`;
+      document.getElementById('bundleFlipProfit').textContent = `+$${estProfit.toFixed(2)} CAD`;
+
+      const scriptEl = document.getElementById('bundleScript');
+      if (showBundle.length > 0) {
+        scriptEl.innerHTML = `🗣️ <b>Say to Vendor:</b> "These ${showBundle.length} add up to $${totalSticker.toFixed(0)} on sticker. Would you take <b>$${Math.round(payPrice)} CAD cash</b> right now if I take all ${showBundle.length}?"`;
+      } else {
+        scriptEl.innerHTML = `Add cards above using "Add to $60 Show Bundle" to generate your exact vendor negotiation script!`;
+      }
+    }
+
+    // =========================================================================
+    // 7. LIVE POKEMONTCG.IO API SEARCH (WITH SMART FALLBACK)
+    // =========================================================================
+    async function searchPokemonAPI() {
+      const input = document.getElementById('apiSearchInput').value.trim();
+      if (!input) return;
+
+      const btn = document.getElementById('searchBtn');
+      const resultsBox = document.getElementById('apiResults');
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+      resultsBox.classList.remove('hidden');
+      resultsBox.innerHTML = `<div class="text-xs text-gray-400 py-2 px-2">Searching Pokémon TCG database for "${input}"...</div>`;
+
+      // First check matching local presets for instant speed
+      const localMatches = popularPresets.filter(p =>
+        p.name.toLowerCase().includes(input.toLowerCase()) ||
+        p.set.toLowerCase().includes(input.toLowerCase())
+      );
+
+      try {
+        const tokens = input.split(/\s+/);
+        const namePart = tokens[0].replace(/[^a-zA-Z0-9-]/g, '');
+        const numPart = tokens.length > 1 ? tokens[1].replace(/[^a-zA-Z0-9]/g, '') : '';
+        const query = numPart ? `name:${namePart}* number:${numPart}*` : `name:${namePart}*`;
+
+        const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}&pageSize=6`);
+        const json = await response.json();
+        const apiCards = json.data || [];
+
+        if (apiCards.length === 0 && localMatches.length === 0) {
+          resultsBox.innerHTML = `<div class="text-xs text-amber-300 p-2 bg-vault-950 rounded-lg">No exact database match found. You can type the card details directly into the fields below!</div>`;
+        } else {
+          const renderedAPI = apiCards.map(c => {
+            const prices = c.tcgplayer?.prices || {};
+            const tier = prices.specialIllustrationRare || prices.illustrationRare || prices.holofoil || prices.normal || Object.values(prices)[0] || {};
+            const usd = tier.market || tier.mid || 12;
+            const cad = (usd * USD_TO_CAD).toFixed(2);
+            const psaEst = Math.round(cad * 4.5);
+            const cm = c.cardmarket?.prices || {};
+            const trend = (cm.avg7 && cm.avg30) ? +(((cm.avg7 - cm.avg30) / cm.avg30) * 100).toFixed(2) : 0;
+            const cleanName = `${c.name} #${c.number}/${c.set?.printedTotal || ''}`.replace(/'/g, "\\'");
+            const cleanSet = (c.set?.name || 'Pokémon TCG').replace(/'/g, "\\'");
+            const img = c.images?.small || 'https://images.pokemontcg.io/sv3pt5/176.png';
+
+            return `
+              <div onclick="selectAPICard('${cleanName}', '${cleanSet}', ${cad}, ${psaEst}, '${img}', ${trend})"
+                class="flex items-center justify-between p-2 rounded-lg bg-vault-950 hover:bg-indigo-950/60 border border-white/5 hover:border-indigo-500/40 cursor-pointer transition text-xs">
+                <div class="flex items-center gap-2.5 truncate">
+                  <img src="${img}" alt="${c.name}" class="w-8 h-11 object-contain rounded bg-vault-900" onerror="this.src='https://placehold.co/60x84/161f35/a5b4fc?text=PKM'" />
+                  <div class="truncate">
+                    <div class="font-bold text-white truncate">${c.name} #${c.number}</div>
+                    <div class="text-[11px] text-gray-400 truncate">${c.set?.name || ''} • ${c.rarity || 'Rare'}</div>
+                  </div>
+                </div>
+                <div class="text-right shrink-0 ml-2">
+                  <div class="font-extrabold text-emerald-400">$${cad} CAD</div>
+                  <div class="text-[10px] text-indigo-300">Tap to Check</div>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          resultsBox.innerHTML = renderedAPI;
+        }
+      } catch (err) {
+        // Fallback to local presets if offline
+        if (localMatches.length > 0) {
+          resultsBox.innerHTML = localMatches.map((p) => `
+            <div onclick="selectAPICard('${p.name}', '${p.set}', ${p.price}, ${p.psa10}, '${p.img}')"
+              class="flex items-center justify-between p-2 rounded-lg bg-vault-950 hover:bg-indigo-950/60 border border-white/5 cursor-pointer text-xs">
+              <span class="font-bold text-white">${p.name} (${p.set})</span>
+              <span class="text-emerald-400 font-bold">$${p.price.toFixed(2)} CAD</span>
+            </div>
+          `).join('');
+        } else {
+          resultsBox.innerHTML = `<div class="text-xs text-amber-300 p-2">Live lookup busy — select a Quick Preset above or type the card's CAD value below.</div>`;
+        }
+      }
+      btn.innerHTML = `<i class="fa-solid fa-search"></i><span>Find</span>`;
+    }
+
+    function selectAPICard(name, set, cadPrice, psa10Est, imgUrl, trend = 0) {
+      document.getElementById('inName').value = name;
+      document.getElementById('inSet').value = set;
+      document.getElementById('inPrice').value = Number(cadPrice).toFixed(2);
+      document.getElementById('inChange').value = trend;
+      document.getElementById('inPsa10').value = psa10Est;
+      document.getElementById('inImg').value = imgUrl;
+      document.getElementById('apiResults').classList.add('hidden');
+      updateLiveChecker();
+      showToast(`Loaded ${name} ($${Number(cadPrice).toFixed(2)} CAD)`, 'info');
+    }
+
+    // =========================================================================
+    // 8. RENDER VAULT COLLECTION & INTERACTIVE CARD CONTROLS
+    // =========================================================================
+    function setVaultFilter(filter) {
+      activeFilter = filter;
+      ['ALL', 'KEEP', 'STAY', 'SELL'].forEach(f => {
+        const btn = document.getElementById('tab-' + f);
+        if (f === filter) {
+          btn.className = 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold transition';
+        } else {
+          const colorMap = {
+            ALL: 'text-gray-300',
+            KEEP: 'text-emerald-400',
+            STAY: 'text-amber-300',
+            SELL: 'text-rose-400'
+          };
+          btn.className = `px-3 py-1.5 rounded-lg bg-vault-800 ${colorMap[f]} hover:bg-vault-700 font-medium transition`;
+        }
+      });
+      renderVault();
+    }
+
+    function filterOnlySellNow() {
+      setVaultFilter('SELL');
+      scrollToSection('vaultSection');
+    }
+
+    function toggleVaultCardCentering(id) {
+      const cards = getVaultCards().map(c => {
+        if (c.id === id) {
+          // Remove calibratedScore lock so toggling dynamically recalculates score!
+          delete c.calibratedScore;
+          c.condition = c.condition === 'MINT_10' ? 'NM_OC' : 'MINT_10';
+        }
+        return c;
+      });
+      saveVaultCards(cards);
+      renderVault();
+      showToast('Updated centering & recalculated Action Score!', 'info');
+    }
+
+    function removeVaultCard(id) {
+      const cards = getVaultCards().filter(c => c.id !== id);
+      saveVaultCards(cards);
+      renderVault();
+      showToast('Card removed from Vault');
+    }
+
+    function resetVaultToDefaults() {
+      saveVaultCards(initialVaultCards);
+      setVaultFilter('ALL');
+      showToast('Restored your 6 original collection cards!');
+    }
+
+    // Generate SVG mini sparkline representing 30d price trend
+    function buildSparklineSVG(changePct, isKeep, isSell) {
+      const stroke = changePct >= 0 ? '#34d399' : '#fb7185';
+      const points = changePct >= 0
+        ? '0,22 16,20 32,17 48,19 64,12 80,10 96,5'
+        : '0,6 16,9 32,8 48,14 64,16 80,20 96,22';
+      return `
+        <svg viewBox="0 0 100 28" class="w-20 h-6 overflow-visible">
+          <polyline fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" points="${points}" />
+        </svg>
+      `;
+    }
+
+    function renderVault() {
+      const rawCards = getVaultCards();
+      const enriched = rawCards.map(c => {
+        const score = computeActionScore(c);
+        const details = getSignalDetails(score, c);
+        return { ...c, score, details };
+      });
+
+      // Update Header KPIs & Tab Counts
+      const totalCAD = enriched.reduce((sum, c) => sum + Number(c.price), 0);
+      const keepCards = enriched.filter(c => c.details.zone === 'KEEP');
+      const stayCards = enriched.filter(c => c.details.zone === 'STAY');
+      const sellCards = enriched.filter(c => c.details.zone === 'SELL');
+
+      document.getElementById('kpiTotalValue').innerHTML = `$${totalCAD.toFixed(2)} <span class="text-[11px] font-normal text-gray-400">CAD</span>`;
+      document.getElementById('kpiCashFloor').innerHTML = `$${(totalCAD * 0.80).toFixed(2)} <span class="text-[11px] font-normal text-gray-400">CAD</span>`;
+      document.getElementById('kpiKeepCount').textContent = `${keepCards.length} Card${keepCards.length === 1 ? '' : 's'}`;
+      document.getElementById('kpiSellCount').textContent = `${sellCards.length} Card${sellCards.length === 1 ? '' : 's'}`;
+      document.getElementById('mobileVaultCount').textContent = enriched.length;
+
+      document.getElementById('count-ALL').textContent = enriched.length;
+      document.getElementById('count-KEEP').textContent = keepCards.length;
+      document.getElementById('count-STAY').textContent = stayCards.length;
+      document.getElementById('count-SELL').textContent = sellCards.length;
+
+      // Filter by tab & search query
+      const searchQ = (document.getElementById('vaultSearch').value || '').toLowerCase().trim();
+      let filtered = enriched.filter(c => {
+        const matchesTab = activeFilter === 'ALL' || c.details.zone === activeFilter;
+        const matchesSearch = !searchQ || c.name.toLowerCase().includes(searchQ) || c.set.toLowerCase().includes(searchQ);
+        return matchesTab && matchesSearch;
+      });
+
+      // Sort
+      const sortBy = document.getElementById('vaultSort').value;
+      if (sortBy === 'SCORE_DESC') filtered.sort((a, b) => b.score - a.score);
+      else if (sortBy === 'SCORE_ASC') filtered.sort((a, b) => a.score - b.score);
+      else if (sortBy === 'PRICE_DESC') filtered.sort((a, b) => b.price - a.price);
+      else if (sortBy === 'CHANGE_DESC') filtered.sort((a, b) => b.change - a.change);
+
+      const grid = document.getElementById('vaultGrid');
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full glass-panel rounded-2xl p-8 text-center text-gray-400 text-sm">
+            No cards match this filter. Try switching back to "All" or add a new card on the left!
+          </div>
+        `;
+        return;
+      }
+
+      const condLabels = {
+        MINT_10: 'NM — Clean 50/50 (PSA 10 Shot)',
+        NM_STAY: 'NM — Standard / Foreign Niche',
+        NM_OC: 'NM — Off-Center (PSA 9 Cap)',
+        LP: 'Lightly Played (LP)',
+        MP: 'Moderately Played (MP)'
+      };
+
+      grid.innerHTML = filtered.map(c => {
+        const isUp = Number(c.change) >= 0;
+        const changeHtml = isUp
+          ? `<span class="text-emerald-400 font-semibold text-xs">▲ +${Number(c.change).toFixed(2)}%</span>`
+          : `<span class="text-rose-400 font-semibold text-xs">▼ ${Number(c.change).toFixed(2)}%</span>`;
+
+        const cashFloor = (c.price * 0.80).toFixed(0);
+        const buyTarget = (c.price * 0.70).toFixed(0);
+
+        return `
+          <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+            <div>
+              <!-- Card Header: Thumbnail + Name + Set + Price -->
+              <div class="flex gap-3.5">
+                <div class="relative shrink-0">
+                  <img src="${c.img}" alt="${c.name}"
+                    onerror="this.src='https://placehold.co/120x168/161f35/a5b4fc?text=Pokemon'"
+                    class="w-16 h-24 object-contain rounded-lg bg-vault-950 p-1 border border-white/10 shadow-md" />
+                </div>
+
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between gap-1">
+                    <h3 class="font-bold text-white text-sm leading-snug truncate" title="${c.name}">${c.name}</h3>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <button onclick="loadVaultCardIntoChecker('${c.id}')" title="Load into Checker" class="text-gray-400 hover:text-indigo-300 text-xs px-1">
+                        <i class="fa-solid fa-sliders"></i>
+                      </button>
+                      <button onclick="removeVaultCard('${c.id}')" title="Delete Card" class="text-gray-500 hover:text-rose-400 text-xs px-1">
+                        <i class="fa-solid fa-trash-can"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <p class="text-xs text-indigo-300 font-medium truncate">${c.set}</p>
+
+                  <!-- Price + 30d Fluctuation + Sparkline -->
+                  <div class="mt-2 flex items-center justify-between">
+                    <div>
+                      <div class="text-lg font-extrabold text-white leading-none">
+                        $${Number(c.price).toFixed(2)} <span class="text-[10px] font-normal text-gray-400">CAD</span>
+                      </div>
+                      <div class="mt-1 flex items-center gap-1.5">
+                        ${changeHtml}
+                        <span class="text-[10px] text-gray-500">(30d)</span>
+                      </div>
+                    </div>
+                    ${buildSparklineSVG(c.change)}
+                  </div>
+                </div>
+              </div>
+
+              <!-- 0% to 100% Action Score Indicator Box -->
+              <div class="mt-3.5 bg-vault-950/90 p-3 rounded-xl border border-white/10">
+                <div class="flex items-center justify-between gap-2 mb-1.5">
+                  <span class="px-2 py-0.5 rounded text-[11px] font-bold border ${c.details.badgeClass}">
+                    ${c.details.badgeText}
+                  </span>
+                  <span class="text-sm font-extrabold text-white">
+                    ${c.score}% <span class="text-[10px] font-normal text-gray-400">Action Score</span>
+                  </span>
+                </div>
+
+                <!-- Progress Bar with 50% Midline -->
+                <div class="w-full h-2.5 bg-vault-800 rounded-full overflow-hidden relative my-1.5">
+                  <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white/50 z-10" title="50% Stay / Neutral"></div>
+                  <div class="h-full ${c.details.barColor} rounded-full transition-all duration-300" style="width: ${c.score}%"></div>
+                </div>
+
+                <div class="flex justify-between text-[10px] text-gray-400">
+                  <span>0% Keep</span>
+                  <span>50% Stay</span>
+                  <span>100% Sell Now</span>
+                </div>
+              </div>
+
+              <!-- Quick Valuation Pills -->
+              <div class="mt-2.5 grid grid-cols-3 gap-1.5 text-center text-[11px]">
+                <div class="bg-vault-900/70 py-1 px-1.5 rounded-lg border border-white/5">
+                  <span class="text-gray-400 block text-[9px] uppercase">80% Cash Floor</span>
+                  <b class="text-emerald-400">$${cashFloor} CAD</b>
+                </div>
+                <div class="bg-vault-900/70 py-1 px-1.5 rounded-lg border border-white/5">
+                  <span class="text-gray-400 block text-[9px] uppercase">70% Buy Target</span>
+                  <b class="text-indigo-300">$${buyTarget} CAD</b>
+                </div>
+                <div class="bg-vault-900/70 py-1 px-1.5 rounded-lg border border-white/5">
+                  <span class="text-gray-400 block text-[9px] uppercase">PSA 10 Value</span>
+                  <b class="text-amber-300">$${c.psa10 || '—'} CAD</b>
+                </div>
+              </div>
+
+              <!-- Card Strategy Note -->
+              <p class="mt-2.5 text-xs text-gray-300 leading-relaxed">
+                ${c.notes || c.details.reason}
+              </p>
+            </div>
+
+            <!-- Footer: Condition & Instant 50/50 vs Off-Center Toggle -->
+            <div class="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[11px]">
+              <span class="text-gray-400 truncate pr-2">
+                <i class="fa-regular fa-gem text-indigo-400 mr-1"></i>
+                <b class="text-gray-200">${condLabels[c.condition] || c.condition}</b>
+              </span>
+              <button onclick="toggleVaultCardCentering('${c.id}')"
+                class="shrink-0 text-indigo-400 hover:text-indigo-200 font-semibold underline">
+                Flip 50/50 ↔ Off-Center
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function loadRate() {
+      try {
+        const r = await fetch('https://api.frankfurter.dev/v1/latest?base=USD&symbols=CAD');
+        const rate = (await r.json()).rates?.CAD;
+        if (rate) { USD_TO_CAD = rate; localStorage.setItem('usd_cad', rate); }
+      } catch (e) {
+        const saved = parseFloat(localStorage.getItem('usd_cad'));
+        if (saved) USD_TO_CAD = saved;
+      }
+    }
+
+    // =========================================================================
+    // WANT-TO-BUY LIST (cards you want + the price to buy at)
+    // =========================================================================
+    const WANT_KEY = 'pokevault_want_v1';
+    function getWants() {
+      try { return JSON.parse(localStorage.getItem(WANT_KEY)) || []; } catch (e) { return []; }
+    }
+    function saveWants(list) {
+      try { localStorage.setItem(WANT_KEY, JSON.stringify(list)); } catch (e) {}
+    }
+    function addToWantList() {
+      const d = getCheckerDraftCard();
+      const list = getWants();
+      list.unshift({ ...d, id: 'want_' + Date.now() });
+      saveWants(list);
+      renderWants();
+      showToast(`Added "${d.name}" to your Want List`);
+    }
+    function removeWant(id) {
+      saveWants(getWants().filter(w => w.id !== id));
+      renderWants();
+    }
+    // Price to buy at = what you'd get flipping it, minus the profit you want (25%, or 35% if hard to resell)
+    function wantTarget(c) {
+      const condMult = { MINT_10: 1.0, NM_STAY: 0.95, NM_OC: 0.85, LP: 0.75, MP: 0.65 }[c.condition] || 0.9;
+      const weak = c.rarity === 'PROMO_GOLD' || c.condition === 'LP' || c.condition === 'MP';
+      return (c.price * condMult * 0.90) / (1 + (weak ? 0.35 : 0.25));
+    }
+    function renderWants() {
+      const wants = getWants();
+      document.getElementById('wantCount').textContent = wants.length;
+      const el = document.getElementById('wantList');
+      if (wants.length === 0) {
+        el.innerHTML = `<div class="text-xs text-gray-500 italic py-2 text-center">Nothing here yet. Look up a card and tap "Add to Want-to-Buy List".</div>`;
+        return;
+      }
+      el.innerHTML = wants.map(c => {
+        const target = wantTarget(c);
+        const gap = (Number(c.price) - target) / target * 100;   // how far market is above your target
+        let badge, cls;
+        if (Number(c.price) <= target) { badge = '🟢 BUY NOW'; cls = 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'; }
+        else if (gap <= 15)            { badge = '🟡 CLOSE';   cls = 'bg-amber-500/15 text-amber-300 border-amber-500/30'; }
+        else                           { badge = '🔴 WAIT';    cls = 'bg-rose-500/15 text-rose-300 border-rose-500/30'; }
+        let note = Number(c.price) <= target
+          ? 'Market price is at or under your target. Buy it.'
+          : `Market is ${gap.toFixed(0)}% above your target. Offer $${target.toFixed(2)} or wait for a drop.`;
+        if (Number(c.change) <= -5) note += ' Price is falling, so it may hit your target soon.';
+        if (Number(c.change) >= 12) note += ' Price just spiked, so do not chase it.';
+        return `
+          <div class="bg-vault-900/90 p-2.5 rounded-xl border border-white/5 text-xs">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="font-bold text-white truncate">${c.name}</div>
+                <div class="text-[11px] text-gray-400 truncate">${c.set}</div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${cls}">${badge}</span>
+                <button onclick="removeWant('${c.id}')" class="text-gray-500 hover:text-rose-400"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+            <div class="mt-2 grid grid-cols-2 gap-2 text-center">
+              <div class="bg-vault-950/80 py-1 rounded-lg border border-white/5">
+                <div class="text-[9px] uppercase text-gray-400">Market Now</div>
+                <b class="text-white">$${Number(c.price).toFixed(2)} CAD</b>
+              </div>
+              <div class="bg-vault-950/80 py-1 rounded-lg border border-white/5">
+                <div class="text-[9px] uppercase text-gray-400">Buy At Or Below</div>
+                <b class="text-emerald-400">$${target.toFixed(2)} CAD</b>
+              </div>
+            </div>
+            <p class="mt-1.5 text-[11px] text-gray-300">${note}</p>
+          </div>`;
+      }).join('');
+    }
+
+    async function refreshOne(c) {
+      const m = (c.img || '').match(/images\.pokemontcg\.io\/([^/]+)\/([^/.]+)\.png/);
+      if (!m) return false;
+      try {
+        const r = await fetch(`https://api.pokemontcg.io/v2/cards/${m[1]}-${m[2]}`);
+        const d = (await r.json()).data;
+        const p = d.tcgplayer?.prices || {};
+        const tier = p.specialIllustrationRare || p.illustrationRare || p.holofoil || p.reverseHolofoil || p.normal || Object.values(p)[0] || {};
+        const usd = tier.market || tier.mid;
+        const cm = d.cardmarket?.prices || {};
+        if (cm.avg7 && cm.avg30) c.change = +(((cm.avg7 - cm.avg30) / cm.avg30) * 100).toFixed(2);
+        if (usd) { c.price = +(usd * USD_TO_CAD).toFixed(2); return true; }
+      } catch (e) { /* keep old price */ }
+      return false;
+    }
+
+    async function refreshPrices() {
+      const cards = getVaultCards();
+      const wants = getWants();
+      let updated = 0;
+      for (const c of [...cards, ...wants]) {
+        if (await refreshOne(c)) updated++;
+      }
+      saveVaultCards(cards);
+      saveWants(wants);
+      renderVault();
+      renderWants();
+      showToast(`Refreshed ${updated} of ${cards.length + wants.length} prices`, 'info');
+    }
+
+    function scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Initialize on load
+    window.onload = function () {
+      renderPresets();
+      updateLiveChecker();
+      renderShowBundle();
+      renderVault();
+      renderWants();
+      loadRate().then(refreshPrices);
+    };
+  </script>
+</body>
+</html>
